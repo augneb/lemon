@@ -13,13 +13,10 @@ type Orm struct {
 	// 开启 debug 会打印查询日志
 	debug bool
 
-	// 是否开启缓存
+	// 缓存
 	enableCache bool
-
-	// 缓存时间
 	cacheTime int
-
-	// 缓存器
+	cacheEmpty bool
 	cacheHandler CacheHandler
 
 	// uri 包含连接相关信息
@@ -41,6 +38,8 @@ type Orm struct {
 	primaryCacheKey string
 	uniqueCacheKey  string
 }
+
+const emptyCacheString = "nil"
 
 // TODO
 type CacheHandler interface {
@@ -139,6 +138,13 @@ func (o *Orm) SetCacheTime(second int) *Orm {
 // 设置缓存器
 func (o *Orm) SetCacheHandler(ch CacheHandler) *Orm {
 	o.cacheHandler = ch
+
+	return o
+}
+
+// 设置缓存空值
+func (o *Orm) SetCacheEmpty(cache bool) *Orm {
+	o.cacheEmpty = cache
 
 	return o
 }

@@ -5,10 +5,11 @@ import (
 	"reflect"
 	"strings"
 	"strconv"
+	"time"
+	"bytes"
+	"database/sql"
 
 	"github.com/vmihailenco/msgpack"
-	"time"
-	"database/sql"
 )
 
 func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
@@ -32,7 +33,13 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 
 	// get from cache
 	res := s.orm.cacheHandler.Get(cacheKey)
+
 	if res != nil && len(res) > 0 {
+		// empty cache
+		if bytes.Equal(res, []byte(emptyCacheString)) {
+			return
+		}
+
 		var d []interface{}
 		err = msgpack.Unmarshal(res, &d)
 
@@ -79,11 +86,18 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 	var find bool
 	if rows.Next() {
 		find = true
-		rows.Scan(pointers...)
+		err = rows.Scan(pointers...)
 	}
 
-	// TODO: empty data cache
+	if err != nil {
+		return
+	}
+
 	if !find {
+		if s.orm.cacheEmpty {
+			s.orm.cacheHandler.Set(cacheKey, []byte(emptyCacheString), s.orm.cacheTime)
+		}
+
 		return
 	}
 
