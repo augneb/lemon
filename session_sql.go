@@ -93,13 +93,13 @@ func (s *Session) OrHaving(column string, operator string, value interface{}) *S
 	return s
 }
 
-func (s *Session) WhereBracket(call func (*Session) *Session, connector string) *Session {
+func (s *Session) WhereBracket(call func (*Session), connector string) *Session {
 	s.bracket(&s.where, call, connector)
 
 	return s
 }
 
-func (s *Session) HavingBracket(call func (*Session) *Session, connector string) *Session {
+func (s *Session) HavingBracket(call func (*Session), connector string) *Session {
 	s.bracket(&s.having, call, connector)
 
 	return s
@@ -257,7 +257,7 @@ func (s *Session) criteria(store *[]conditionStore, column string, operator stri
 	})
 }
 
-func (s *Session) bracket(store *[]conditionStore, call func (*Session) *Session, connector string) {
+func (s *Session) bracket(store *[]conditionStore, call func (*Session), connector string) {
 	if *store == nil {
 		*store = []conditionStore{}
 	}
