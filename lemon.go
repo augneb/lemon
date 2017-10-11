@@ -45,6 +45,7 @@ const emptyCacheString = "nil"
 type CacheHandler interface {
 	Get(key string) []byte
 	Set(key string, val []byte, expire int) error
+	Del(key string)
 }
 
 //  实例化一个 ORM

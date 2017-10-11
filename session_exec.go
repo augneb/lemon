@@ -6,27 +6,20 @@ import (
 )
 
 func (s *Session) Update() (int64, error) {
-	defer s.reset()
-
-	sqlStr, values := s.GetUpdateSql()
-
-	res, err := s.Statement(sqlStr, values...)
-	if err != nil {
-		return 0, err
-	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return 0, err
-	}
-
-	return n, nil
+	return s.updateDelete(s.GetUpdateSql())
 }
 
 func (s *Session) Delete() (int64, error) {
+	return s.updateDelete(s.GetDeleteSql())
+}
+
+func (s *Session) updateDelete(sqlStr string, values []interface{}) (int64, error) {
 	defer s.reset()
 
-	sqlStr, values := s.GetDeleteSql()
+	keys, _ := s.makeCleanKey()
+	if keys != nil {
+		s.cleanCache(keys)
+	}
 
 	res, err := s.Statement(sqlStr, values...)
 	if err != nil {
@@ -38,8 +31,13 @@ func (s *Session) Delete() (int64, error) {
 		return 0, err
 	}
 
+	if keys != nil {
+		s.cleanCache(keys)
+	}
+
 	return n, nil
 }
+
 
 func (s *Session) Insert() (int64, error) {
 	defer s.reset()
@@ -54,6 +52,16 @@ func (s *Session) Insert() (int64, error) {
 	n, err := res.LastInsertId()
 	if err != nil {
 		return 0, err
+	}
+
+	if s.orm.cacheEmpty {
+		t := s.table.Name
+		s.reset()
+		s.Table(t).Where(s.table.PrimaryKey, "=", n)
+
+		if keys, _ := s.makeCleanKey(); keys != nil {
+			s.cleanCache(keys)
+		}
 	}
 
 	return n, nil

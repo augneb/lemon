@@ -13,8 +13,6 @@ import (
 )
 
 func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
-	err = nil
-
 	defer func() {
 		s.queryTime = time.Since(s.queryStart).Seconds()
 		str := "\033[42"
@@ -59,10 +57,7 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 		orm:         s.orm,
 		tx:          s.tx,
 		enableCache: false,
-		options:     s.options,
 		table:       s.table,
-		groupBy:     s.groupBy,
-		orderBy:     s.orderBy,
 		where:       s.where,
 		columns:     s.table.Fields,
 		limit:       1,
@@ -278,10 +273,126 @@ func (s *Session) getUsedFields() map[string]bool {
 	return usedFields
 }
 
-func (s *Session) makeCleanKey() {
+func (s *Session) makeCleanKey() (keys []string, err error) {
+	usedFields := s.getUsedFields()
 
+	columns := []string{}
+	for k := range usedFields {
+		columns = append(columns, k)
+	}
+
+	sn := &Session{
+		orm:         s.orm,
+		tx:          s.tx,
+		enableCache: false,
+		options:     s.options,
+		table:       s.table,
+		orderBy:     s.orderBy,
+		where:       s.where,
+		columns:     columns,
+		limit:       s.limit,
+		offset:      s.offset,
+	}
+
+	var rows *sql.Rows
+	rows, err = sn.Query()
+	if err != nil {
+		return
+	}
+
+	sn = nil
+
+	defer rows.Close()
+
+	l := len(columns)
+
+	res := []map[string]interface{}{}
+	if rows.Next() {
+		d := map[string]interface{}{}
+
+		t := make([]interface{}, l)
+		p := make([]interface{}, l)
+		for i := 0; i < l; i++ {
+			p[i] = &t[i]
+		}
+
+		err = rows.Scan(p...)
+		if err != nil {
+			return
+		}
+
+		for i, f := range columns {
+			d[f] = t[i]
+		}
+
+		res = append(res, d)
+	}
+
+	// 尝试从 where 条件中找到主键或者唯一
+	if len(res) == 0 && len(s.where) > 0 {
+		d := map[string]interface{}{}
+		for _, item := range s.where {
+			if item.operator != "=" {
+				continue
+			}
+
+			if v, ok := usedFields[item.column]; ok {
+				d[item.column] = v
+			}
+		}
+
+		res = append(res, d)
+	}
+
+	if len(res) == 0 {
+		return
+	}
+
+	for _, items := range res {
+		if v, ok := items[s.table.PrimaryKey]; ok {
+			pk := fmt.Sprintf(s.orm.primaryCacheKey, s.table.Name, v)
+			keys = append(keys, pk)
+		}
+
+		if len(s.table.UniqueKeys) == 0 {
+			continue
+		}
+
+		for k, v := range s.table.UniqueKeys {
+			uniques := make([]interface{}, len(v))
+			for i, f := range v {
+				v, ok := items[f]
+				if !ok {
+					uniques = nil
+					break
+				}
+
+				uniques[i] = v
+			}
+
+			if uniques == nil {
+				continue
+			}
+
+			t := k + ":"
+			for i := 0; i < l; i++ {
+				if t != "" {
+					t += "&"
+				}
+
+				t += "%v"
+			}
+
+			uk := fmt.Sprintf(s.orm.uniqueCacheKey, s.table.Name, fmt.Sprintf(t, uniques...))
+			keys = append(keys, uk)
+		}
+	}
+
+	return
 }
 
-func (s *Session) cleanCache() {
-
+func (s *Session) cleanCache(keys []string) {
+	for _, key := range keys {
+		s.orm.cacheHandler.Del(key)
+	}
 }
