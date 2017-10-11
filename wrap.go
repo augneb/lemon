@@ -32,11 +32,11 @@ func (o *Orm) Having(column string, operator string, value interface{}) *Session
 	return o.NewSession().Having(column, operator, value)
 }
 
-func (o *Orm) WhereBracket(call func (*Session) *Session, connector string) *Session {
+func (o *Orm) WhereBracket(call func (*Session), connector string) *Session {
 	return o.NewSession().WhereBracket(call, connector)
 }
 
-func (o *Orm) HavingBracket(call func (*Session) *Session, connector string) *Session {
+func (o *Orm) HavingBracket(call func (*Session), connector string) *Session {
 	return o.NewSession().HavingBracket(call, connector)
 }
 
