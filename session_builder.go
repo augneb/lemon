@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"reflect"
+	"github.com/augneb/utils"
 )
 
 func (s *Session) buildSelectString() string {
@@ -195,7 +196,7 @@ func (s *Session) buildCriteriaString(store *[]conditionStore) string {
 }
 
 func (s *Session) buildSelect() {
-	parts := reduceEmptyElements([]string{
+	parts := utils.ReduceEmptyElements([]string{
 		s.buildSelectString(),
 		s.buildFromString(false),
 		s.buildWhereString(),
@@ -247,7 +248,7 @@ func (s *Session) getCriteriaValues(store *[]conditionStore) {
 }
 
 func (s *Session) buildUpdate() {
-	parts := reduceEmptyElements([]string{
+	parts := utils.ReduceEmptyElements([]string{
 		"UPDATE",
 		s.buildFromString(true),
 		s.buildSetString(),
@@ -279,7 +280,7 @@ func (s *Session) GetUpdateSql() (string, []interface{}) {
 }
 
 func (s *Session) buildDelete() {
-	parts := reduceEmptyElements([]string{
+	parts := utils.ReduceEmptyElements([]string{
 		"DELETE",
 		s.buildFromString(false),
 		s.buildWhereString(),

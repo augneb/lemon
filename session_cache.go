@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	"github.com/vmihailenco/msgpack"
+	"github.com/augneb/utils"
 )
 
 func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
@@ -20,7 +21,7 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 			str = "\033[41"
 		}
 
-		fmt.Printf("[%s] " + str + ";37;1mOrm\033[0m %s [%fs]\n", date("m-d H:i:s", s.queryStart), cacheKey, s.queryTime)
+		utils.Debug(fmt.Sprintf(str + ";37;1mOrm\033[0m %s [%fs]", cacheKey, s.queryTime), s.queryStart)
 	}()
 
 	s.queryStart = time.Now()
@@ -217,9 +218,9 @@ func convertAssign(dest, src interface{}) error {
 		case *string:
 			*d = string(s)
 		case *interface{}:
-			*d = cloneBytes(s)
+			*d = utils.CloneBytes(s)
 		case *[]byte:
-			*d = cloneBytes(s)
+			*d = utils.CloneBytes(s)
 		default:
 			return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
 		}
@@ -421,16 +422,6 @@ func (s *Session) makeCleanKey() (keys []string, err error) {
 func (s *Session) cleanCache(keys []string) {
 	for _, key := range keys {
 		s.orm.cacheHandler.Del(key)
-	}
-}
-
-func cloneBytes(b []byte) []byte {
-	if b == nil {
-		return nil
-	} else {
-		c := make([]byte, len(b))
-		copy(c, b)
-		return c
 	}
 }
 

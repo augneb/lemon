@@ -4,6 +4,7 @@ import (
 	"time"
 	"fmt"
 	"database/sql"
+	"github.com/augneb/utils"
 )
 
 const logicalAnd   = "AND"
@@ -79,7 +80,7 @@ func (s *Session) after(status bool) {
 		str = "\033[41"
 	}
 
-	fmt.Printf("[%s] " + str + ";37;1mOrm\033[0m %s %v [%fs]\n", date("m-d H:i:s", s.queryStart), s.sql, s.args, s.queryTime)
+	utils.Debug(fmt.Sprintf(str + ";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
 }
 
 // 重设清理
