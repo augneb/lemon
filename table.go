@@ -15,7 +15,6 @@ type structCache struct {
 	Fields        []string
 	AutoIncrement map[int]string
 	UniqueKeys    map[string][]string
-	Type          reflect.Type
 }
 
 // 获取表结构信息
@@ -70,7 +69,6 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 	newVal.Fields        = make([]string, t.NumField())
 	newVal.AutoIncrement = map[int]string{}
 	newVal.UniqueKeys    = map[string][]string{}
-	newVal.Type          = t
 
 	for i := 0; i < t.NumField(); i++ {
 		// 取 Tag

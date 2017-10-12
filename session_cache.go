@@ -26,8 +26,6 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 	s.queryStart = time.Now()
 
 	v := reflect.ValueOf(obj)
-	n := reflect.New(s.table.Type)
-	i := reflect.Indirect(n)
 
 	// get from cache
 	res := s.orm.cacheHandler.Get(cacheKey)
@@ -73,15 +71,18 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 
 	defer rows.Close()
 
-	pointers := make([]interface{}, i.NumField())
-	for j := 0; j < i.NumField(); j++ {
-		pointers[j] = i.Field(j).Addr().Interface()
+	l := len(s.table.Fields)
+
+	d := make([]interface{}, l)
+	p := make([]interface{}, l)
+	for i := 0; i < l; i++ {
+		p[i] = &d[i]
 	}
 
 	var find bool
 	if rows.Next() {
 		find = true
-		err = rows.Scan(pointers...)
+		err = rows.Scan(p...)
 	}
 
 	if err != nil {
@@ -94,11 +95,6 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 		}
 
 		return
-	}
-
-	d := make([]interface{}, i.NumField())
-	for j := 0; j < i.NumField(); j++ {
-		d[j] = i.Field(j).Interface()
 	}
 
 	for _, idx := range s.colIdx {
@@ -204,8 +200,47 @@ func (s *Session) getCleanKey() string {
 }
 
 func convertAssign(dest, src interface{}) error {
+	switch s := src.(type) {
+	case string:
+		switch d := dest.(type) {
+		case *string:
+			*d = s
+		case *[]byte:
+			*d = []byte(s)
+		default:
+			return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+		}
+
+		return nil
+	case []byte:
+		switch d := dest.(type) {
+		case *string:
+			*d = string(s)
+		case *interface{}:
+			*d = cloneBytes(s)
+		case *[]byte:
+			*d = cloneBytes(s)
+		default:
+			return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+		}
+
+		return nil
+	case nil:
+		switch d := dest.(type) {
+		case *interface{}:
+			*d = nil
+		case *[]byte:
+			*d = nil
+		default:
+			return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+		}
+
+		return nil
+	}
+
 	switch d := dest.(type) {
 	case *string:
+		fmt.Println("->", src)
 		*d = src.(string)
 	case *[]byte:
 		*d = src.([]byte)
@@ -250,14 +285,6 @@ func convertAssign(dest, src interface{}) error {
 	}
 
 	return nil
-}
-
-func strconvErr(src interface{}, s string, kind reflect.Kind, err error) error {
-	if ne, ok := err.(*strconv.NumError); ok {
-		err = ne.Err
-	}
-
-	return fmt.Errorf("converting driver.Value type %T (%q) to a %s: %v", src, s, kind, err)
 }
 
 func (s *Session) getUsedFields() map[string]bool {
@@ -395,4 +422,22 @@ func (s *Session) cleanCache(keys []string) {
 	for _, key := range keys {
 		s.orm.cacheHandler.Del(key)
 	}
+}
+
+func cloneBytes(b []byte) []byte {
+	if b == nil {
+		return nil
+	} else {
+		c := make([]byte, len(b))
+		copy(c, b)
+		return c
+	}
+}
+
+func strconvErr(src interface{}, s string, kind reflect.Kind, err error) error {
+	if ne, ok := err.(*strconv.NumError); ok {
+		err = ne.Err
+	}
+
+	return fmt.Errorf("converting driver.Value type %T (%q) to a %s: %v", src, s, kind, err)
 }

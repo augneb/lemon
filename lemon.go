@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const emptyCacheString = "nil"
+
 type Orm struct {
 	db *sql.DB
 
@@ -28,9 +30,6 @@ type Orm struct {
 	// 慢查询事件回掉
 	longQueryEventCall EventCall
 
-	// 错误事件回掉
-	errorEventCall EventCall
-
 	// 表结构缓存
 	structCache sync.Map
 
@@ -39,9 +38,6 @@ type Orm struct {
 	uniqueCacheKey  string
 }
 
-const emptyCacheString = "nil"
-
-// TODO
 type CacheHandler interface {
 	Get(key string) []byte
 	Set(key string, val []byte, expire int) error
