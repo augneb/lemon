@@ -13,7 +13,7 @@ import (
 	"github.com/augneb/utils"
 )
 
-func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
+func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 	defer func() {
 		s.queryTime = time.Since(s.queryStart).Seconds()
 		str := "\033[42"
@@ -25,8 +25,6 @@ func (s *Session) getFromCache(cacheKey string, obj interface{}) (err error) {
 	}()
 
 	s.queryStart = time.Now()
-
-	v := reflect.ValueOf(obj)
 
 	// get from cache
 	res := s.orm.cacheHandler.Get(cacheKey)

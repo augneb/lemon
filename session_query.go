@@ -25,12 +25,19 @@ func (s *Session) Query() (*sql.Rows, error) {
 	return r, e
 }
 
-func (s *Session) Get(obj interface{}) error {
+func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 	defer s.reset()
 
 	v := reflect.ValueOf(obj)
+
+	// 检测是否指针
 	if v.Kind() != reflect.Ptr {
 		return errors.New("needs a pointer, given:" + v.Kind().String())
+	}
+
+	// 检测是否结构体
+	if k := v.Elem().Kind(); k != reflect.Struct {
+		return errors.New("element needs a struct, given:" + k.String())
 	}
 
 	s.Limit(1)
@@ -39,30 +46,42 @@ func (s *Session) Get(obj interface{}) error {
 		s.Table(s.orm.GetTableInfo(obj).Name)
 	}
 
+	// 分析需要查询的字段
 	if s.colIdx == nil {
 		s.parseSelectFields(s.table)
 	}
 
+	var err error
+
+	// 是否开启缓存
 	if s.enableCache {
+		// 命中缓存条件，从缓存中获取数据
 		if cacheKey := s.getCleanKey(); cacheKey != "" {
-			return s.getFromCache(cacheKey, obj)
+			err = s.getFromCache(cacheKey, &v)
 		}
+	} else {
+		pointers := make([]interface{}, len(s.colIdx))
+		for i, idx := range s.colIdx {
+			pointers[i] = v.Elem().Field(idx).Addr().Interface()
+		}
+
+		var rows *sql.Rows
+		rows, err = s.Query()
+		if err != nil {
+			return err
+		}
+
+		if rows.Next() {
+			err = rows.Scan(pointers...)
+		}
+
+		rows.Close()
 	}
 
-	rows, err := s.Query()
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	pointers := make([]interface{}, len(s.colIdx))
-	for i, idx := range s.colIdx {
-		pointers[i] = v.Elem().Field(idx).Addr().Interface()
-	}
-
-	if rows.Next() {
-		err = rows.Scan(pointers...)
+	if err == nil && len(to) > 0 {
+		for _, idx := range s.colIdx {
+			(*to[0])[s.table.Fields[idx]] = v.Elem().Field(idx).Interface()
+		}
 	}
 
 	return err
