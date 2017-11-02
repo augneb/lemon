@@ -68,8 +68,6 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 
 	sn = nil
 
-	defer rows.Close()
-
 	l := len(s.table.Fields)
 
 	d := make([]interface{}, l)
@@ -83,6 +81,8 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 		find = true
 		err = rows.Scan(p...)
 	}
+
+	rows.Close()
 
 	if err != nil {
 		return
