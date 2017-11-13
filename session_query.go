@@ -7,8 +7,21 @@ import (
 	"database/sql"
 )
 
-func (s *Session) Query() (*sql.Rows, error) {
-	sqlStr, values := s.GetSelectSql()
+var (
+	errSqlEmpty       = errors.New("sql is empty")
+	errNeedPointer    = errors.New("needs a pointer")
+	errNeedPtrToSlice = errors.New("needs a pointer to a slice")
+)
+
+func (s *Session) Query(sqlStr string, values ...interface{}) (*sql.Rows, error) {
+	if sqlStr == "" {
+		return nil, errSqlEmpty
+	}
+
+	if s.sql == "" {
+		s.sql = sqlStr
+		s.args = values
+	}
 
 	s.queryStart = time.Now()
 
@@ -17,7 +30,18 @@ func (s *Session) Query() (*sql.Rows, error) {
 	if s.tx != nil {
 		r, e = s.tx.Query(sqlStr, values...)
 	} else {
-		r, e = s.orm.db.Query(sqlStr, values...)
+		if s.useSlave == 0 && s.orm.dbSlaveLen > 0 {
+			s.useSlave = 1
+		}
+
+		var db *sql.DB
+		if s.useSlave == 2 {
+			db = s.orm.db
+		} else {
+			db = s.orm.getSlave()
+		}
+
+		r, e = db.Query(sqlStr, values...)
 	}
 
 	s.after(e == nil)
@@ -32,12 +56,12 @@ func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 
 	// 检测是否指针
 	if v.Kind() != reflect.Ptr {
-		return errors.New("needs a pointer, given:" + v.Kind().String())
+		return errors.New("needs a pointer, given: " + v.Kind().String())
 	}
 
 	// 检测是否结构体
 	if k := v.Elem().Kind(); k != reflect.Struct {
-		return errors.New("element needs a struct, given:" + k.String())
+		return errors.New("element needs a struct, given: " + k.String())
 	}
 
 	s.Limit(1)
@@ -66,7 +90,9 @@ func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 		}
 
 		var rows *sql.Rows
-		rows, err = s.Query()
+
+		sqlStr, values := s.GetSelectSql()
+		rows, err = s.Query(sqlStr, values...)
 		if err != nil {
 			return err
 		}
@@ -92,12 +118,12 @@ func (s *Session) Find(obj interface{}) error {
 
 	v := reflect.ValueOf(obj)
 	if v.Kind() != reflect.Ptr {
-		return errors.New("needs a pointer")
+		return errNeedPointer
 	}
 
 	sliceValue := reflect.Indirect(v)
 	if sliceValue.Kind() != reflect.Slice {
-		return errors.New("needs a pointer to a slice")
+		return errNeedPtrToSlice
 	}
 
 	elemType := sliceValue.Type().Elem()
@@ -118,7 +144,8 @@ func (s *Session) Find(obj interface{}) error {
 		s.parseSelectFields(ti)
 	}
 
-	rows, err := s.Query()
+	sqlStr, values := s.GetSelectSql()
+	rows, err := s.Query(sqlStr, values...)
 	if err != nil {
 		return err
 	}
@@ -126,7 +153,7 @@ func (s *Session) Find(obj interface{}) error {
 	defer rows.Close()
 
 	for rows.Next() {
-		newValue    := reflect.New(elemType)
+		newValue := reflect.New(elemType)
 		newIndirect := reflect.Indirect(newValue)
 
 		pointers := []interface{}{}

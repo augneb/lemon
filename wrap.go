@@ -1,5 +1,17 @@
 package lemon
 
+func (o *Orm) Master() *Session {
+	return o.NewSession().Master()
+}
+
+func (o *Orm) Slave() *Session {
+	return o.NewSession().Slave()
+}
+
+func (o *Orm) EnableCache(cache bool) *Session {
+	return o.NewSession().EnableCache(cache)
+}
+
 func (o *Orm) Columns(columns ...string) *Session {
 	return o.NewSession().Columns(columns...)
 }

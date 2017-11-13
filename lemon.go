@@ -2,23 +2,28 @@ package lemon
 
 import (
 	"sync"
-	"runtime"
-	"database/sql"
 	"time"
+	"runtime"
+	"math/rand"
+	"database/sql"
 )
 
 const emptyCacheString = "nil"
 
 type Orm struct {
-	db *sql.DB
+	db         *sql.DB
+	dbSlave    []*sql.DB
+	dbSlaveLen int
+
+	driverName string
 
 	// 开启 debug 会打印查询日志
 	debug bool
 
 	// 缓存
-	enableCache bool
-	cacheTime int
-	cacheEmpty bool
+	enableCache  bool
+	cacheTime    int
+	cacheEmpty   bool
 	cacheHandler CacheHandler
 
 	// uri 包含连接相关信息
@@ -45,24 +50,41 @@ type CacheHandler interface {
 }
 
 //  实例化一个 ORM
-func Open(driverName, dataSourceName string) (*Orm, error) {
-	db, err := sql.Open(driverName, dataSourceName)
+func Open(driverName, dataSource string) (*Orm, error) {
+	db, err := sql.Open(driverName, dataSource)
 	if err != nil {
 		return nil, err
 	}
 
 	o := &Orm{
-		db: db,
+		db:         db,
+		driverName: driverName,
 	}
 
-	o.uri = o.Parse(driverName, dataSourceName)
+	o.uri = o.Parse(driverName, dataSource)
 
 	// 结束的时候执行，关闭数据库连接
 	runtime.SetFinalizer(o, func(o *Orm) {
 		o.Close()
 	})
 
+	// 随机种子
+	rand.Seed(time.Now().UnixNano())
+
 	return o, nil
+}
+
+// 添加 Slave
+func (o *Orm) AddSlave(dataSource string) error {
+	db, err := sql.Open(o.driverName, dataSource)
+	if err != nil {
+		return err
+	}
+
+	o.dbSlave = append(o.dbSlave, db)
+	o.dbSlaveLen++
+
+	return nil
 }
 
 // 设置数据库最大空闲连接数
@@ -119,7 +141,7 @@ func (o *Orm) SetEnableCache(cache bool, prefix ...string) *Orm {
 		}
 
 		o.primaryCacheKey = o.cachePrefix + ":primary:%s:%v"
-		o.uniqueCacheKey  = o.cachePrefix + ":unique:%s:%s"
+		o.uniqueCacheKey = o.cachePrefix + ":unique:%s:%s"
 	}
 
 	return o
@@ -154,4 +176,9 @@ func (o *Orm) Close() error {
 // 开启一个新的查询
 func (o *Orm) NewSession() *Session {
 	return &Session{orm: o, enableCache: o.enableCache}
+}
+
+// 随机获取一个从库连接
+func (o *Orm) getSlave() *sql.DB {
+	return o.dbSlave[rand.Intn(o.dbSlaveLen)]
 }

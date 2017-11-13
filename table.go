@@ -3,7 +3,7 @@ package lemon
 import (
 	"reflect"
 	"strings"
-	"github.com/augneb/utils"
+	"github.com/augneb/util"
 )
 
 type TableName interface {
@@ -53,7 +53,7 @@ func (o *Orm) GetTableInfo(table interface{}, isType ...bool) *structCache {
 	if fn, ok := v.Interface().(TableName); ok {
 		tableName = fn.TableName()
 	} else {
-		tableName = utils.ToSnakeCase(structName, true)
+		tableName = util.ToSnakeCase(structName, true)
 	}
 
 	if s, ok := o.structCache.Load(tableName); ok {
@@ -80,7 +80,7 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 
 		// 没有 Tag，则数据库字段名为表结构字段名
 		if tag == "" {
-			newVal.Fields[i] = utils.ToSnakeCase(n, true)
+			newVal.Fields[i] = util.ToSnakeCase(n, true)
 			continue
 		}
 
@@ -90,7 +90,7 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 		// 第一个 tag，如果不是字段名，则数据库字段名为结构体字段名
 		f := tags[0][:2]
 		if f == "ai" || f == "pk" || f == "un" {
-			f = utils.ToSnakeCase(n, true)
+			f = util.ToSnakeCase(n, true)
 		} else {
 			f = strings.Trim(tags[0], "'")
 		}

@@ -4,12 +4,12 @@ import (
 	"time"
 	"fmt"
 	"database/sql"
-	"github.com/augneb/utils"
+	"github.com/augneb/util"
 )
 
-const logicalAnd   = "AND"
-const logicalOr    = "OR"
-const bracketOpen  = "("
+const logicalAnd = "AND"
+const logicalOr = "OR"
+const bracketOpen = "("
 const bracketClose = ")"
 
 type conditionStore struct {
@@ -26,12 +26,12 @@ type rawStore struct {
 
 type Session struct {
 	orm *Orm
+	tx  *sql.Tx
 
+	useSlave    int // 0: auto, 1: slave, 2: master
 	enableCache bool
 
-	tx *sql.Tx
-
-	sql string
+	sql  string
 	args []interface{}
 
 	queryStart time.Time
@@ -47,16 +47,29 @@ type Session struct {
 	limit   int64
 	offset  int64
 
-	// for update
-	set     map[string]interface{}
-	// for insert
-	fields  []string
-	// for select
-	colIdx  []int
+	set    map[string]interface{} // for update
+	fields []string               // for insert
+	colIdx []int                  // for select
+}
+
+// 强制使用 master
+func (s *Session) Master() *Session {
+	s.useSlave = 2
+
+	return s
+}
+
+// 强制使用 slave
+func (s *Session) Slave() *Session {
+	if s.orm.dbSlaveLen > 0 {
+		s.useSlave = 1
+	}
+
+	return s
 }
 
 // 设置是否启用缓存
-func (s *Session) SetEnableCache(cache bool) *Session {
+func (s *Session) EnableCache(cache bool) *Session {
 	s.enableCache = cache
 
 	return s
@@ -80,21 +93,21 @@ func (s *Session) after(status bool) {
 		str = "\033[41"
 	}
 
-	utils.Debug(fmt.Sprintf(str + ";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
+	util.Debug(fmt.Sprintf(str+";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
 }
 
 // 重设清理
 func (s *Session) reset() {
-	s.limit   = 0
-	s.offset  = 0
-	s.table   = nil
+	s.limit = 0
+	s.offset = 0
+	s.table = nil
 	s.options = nil
 	s.columns = nil
 	s.orderBy = nil
 	s.groupBy = nil
-	s.where   = nil
-	s.having  = nil
-	s.set     = nil
-	s.fields  = nil
-	s.colIdx  = nil
+	s.where = nil
+	s.having = nil
+	s.set = nil
+	s.fields = nil
+	s.colIdx = nil
 }

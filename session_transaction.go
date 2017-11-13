@@ -2,9 +2,14 @@ package lemon
 
 import "errors"
 
+var (
+	errTransExist    = errors.New("transaction has exist")
+	errTransNotExist = errors.New("transaction not exist")
+)
+
 func (s *Session) Begin() error {
 	if s.tx != nil {
-		return errors.New("transaction has exist")
+		return errTransExist
 	}
 
 	tx, err := s.orm.db.Begin()
@@ -27,7 +32,7 @@ func (s *Session) Commit() error {
 
 func (s *Session) transaction(t string) error {
 	if s.tx == nil {
-		return errors.New("transaction not start")
+		return errTransNotExist
 	}
 
 	var err error
