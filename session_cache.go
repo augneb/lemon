@@ -14,15 +14,17 @@ import (
 )
 
 func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
-	defer func() {
-		s.queryTime = time.Since(s.queryStart).Seconds()
-		str := "\033[42"
-		if err != nil {
-			str = "\033[41"
-		}
+	if s.orm.debug {
+		defer func() {
+			s.queryTime = time.Since(s.queryStart).Seconds()
+			str := "\033[42"
+			if err != nil {
+				str = "\033[41"
+			}
 
-		util.Debug(fmt.Sprintf(str + ";37;1mOrm\033[0m %s [%fs]", cacheKey, s.queryTime), s.queryStart)
-	}()
+			util.PrintlnLog(fmt.Sprintf(str+";37;1mOrm\033[0m %s [%fs]", cacheKey, s.queryTime), s.queryStart)
+		}()
+	}
 
 	s.queryStart = time.Now()
 
@@ -242,7 +244,6 @@ func convertAssign(dest, src interface{}) error {
 
 	switch d := dest.(type) {
 	case *string:
-		fmt.Println("->", src)
 		*d = src.(string)
 	case *[]byte:
 		*d = src.([]byte)

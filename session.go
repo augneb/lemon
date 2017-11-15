@@ -93,7 +93,7 @@ func (s *Session) after(status bool) {
 		str = "\033[41"
 	}
 
-	util.Debug(fmt.Sprintf(str+";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
+	util.PrintlnLog(fmt.Sprintf(str+";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
 }
 
 // 重设清理

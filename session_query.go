@@ -30,8 +30,12 @@ func (s *Session) Query(sqlStr string, values ...interface{}) (*sql.Rows, error)
 	if s.tx != nil {
 		r, e = s.tx.Query(sqlStr, values...)
 	} else {
-		if s.useSlave == 0 && s.orm.dbSlaveLen > 0 {
-			s.useSlave = 1
+		if s.useSlave == 0 {
+			if s.orm.dbSlaveLen > 0 {
+				s.useSlave = 1
+			} else {
+				s.useSlave = 2
+			}
 		}
 
 		var db *sql.DB
@@ -76,14 +80,18 @@ func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 	}
 
 	var err error
+	var cacheKey string
 
 	// 是否开启缓存
 	if s.enableCache {
 		// 命中缓存条件，从缓存中获取数据
-		if cacheKey := s.getCleanKey(); cacheKey != "" {
+		cacheKey = s.getCleanKey()
+		if cacheKey != "" {
 			err = s.getFromCache(cacheKey, &v)
 		}
-	} else {
+	}
+
+	if cacheKey == "" {
 		pointers := make([]interface{}, len(s.colIdx))
 		for i, idx := range s.colIdx {
 			pointers[i] = v.Elem().Field(idx).Addr().Interface()

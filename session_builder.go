@@ -196,7 +196,7 @@ func (s *Session) buildCriteriaString(store *[]conditionStore) string {
 }
 
 func (s *Session) buildSelect() {
-	parts := util.ReduceEmptyElements([]string{
+	parts := util.SliceStringFilter([]string{
 		s.buildSelectString(),
 		s.buildFromString(false),
 		s.buildWhereString(),
@@ -248,7 +248,7 @@ func (s *Session) getCriteriaValues(store *[]conditionStore) {
 }
 
 func (s *Session) buildUpdate() {
-	parts := util.ReduceEmptyElements([]string{
+	parts := util.SliceStringFilter([]string{
 		"UPDATE",
 		s.buildFromString(true),
 		s.buildSetString(),
@@ -280,7 +280,7 @@ func (s *Session) GetUpdateSql() (string, []interface{}) {
 }
 
 func (s *Session) buildDelete() {
-	parts := util.ReduceEmptyElements([]string{
+	parts := util.SliceStringFilter([]string{
 		"DELETE",
 		s.buildFromString(false),
 		s.buildWhereString(),
