@@ -80,7 +80,7 @@ func (s *Session) after(status bool) {
 	s.queryTime = time.Since(s.queryStart).Seconds()
 
 	// TODO: open a goroutine?
-	if s.orm.longQueryTime > 0 && s.queryTime >= s.orm.longQueryTime {
+	if s.orm.longQueryTime > 0 && s.queryTime >= s.orm.longQueryTime && s.orm.longQueryEventCall == nil {
 		s.orm.eventLongQuery(s)
 	}
 
@@ -88,12 +88,8 @@ func (s *Session) after(status bool) {
 		return
 	}
 
-	str := "\033[42"
-	if !status {
-		str = "\033[41"
-	}
-
-	util.PrintlnLog(fmt.Sprintf(str+";37;1mOrm\033[0m %s %v [%fs]", s.sql, s.args, s.queryTime), s.queryStart)
+	str := "Orm %s %v [%fs] \033[49;" + util.If(status, "32;1m√", "31;1mx").(string) + "\033[0m"
+	util.PrintlnLog(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
 }
 
 // 重设清理
