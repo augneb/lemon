@@ -17,10 +17,6 @@ type EventCall func(params *EventParams)
 
 // 慢查询事件回掉
 func (o *Orm) eventLongQuery(s *Session) {
-	if o.longQueryEventCall == nil {
-		return
-	}
-
 	// 执行回掉
 	o.longQueryEventCall(&EventParams{
 		Sql:       s.sql,

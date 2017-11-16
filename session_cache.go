@@ -14,18 +14,6 @@ import (
 )
 
 func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
-	if s.orm.debug {
-		defer func() {
-			s.queryTime = time.Since(s.queryStart).Seconds()
-			str := "\033[42"
-			if err != nil {
-				str = "\033[41"
-			}
-
-			util.PrintlnLog(fmt.Sprintf(str+";37;1mOrm\033[0m %s [%fs]", cacheKey, s.queryTime), s.queryStart)
-		}()
-	}
-
 	s.queryStart = time.Now()
 
 	// get from cache
