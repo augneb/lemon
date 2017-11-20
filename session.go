@@ -89,7 +89,7 @@ func (s *Session) after(status bool) {
 	}
 
 	str := "Orm %s %v [%fs] \033[49;" + util.If(status, "32;1m√", "31;1mx").(string) + "\033[0m"
-	util.PrintlnLog(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
+	util.LogPrintln(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
 }
 
 // 重设清理
