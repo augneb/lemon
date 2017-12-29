@@ -35,29 +35,25 @@ type User struct {
 has, err := db.Get(&user)  
 
 // SELECT name FROM user WHERE id = ? LIMIT 1
-has, err := db.Columns("name").Where("id", "=", id).Get(&user)  
+has, err := db.Columns("name").Where("id", id).Get(&user)  
 
 // SELECT * FROM user WHERE id < ?
 users := []User{}
-has, err := db.Where("id", "<", id).Find(&users)  
+has, err := db.Where("id", id, "<").Find(&users)  
 
 // SELECT * FROM user WHERE id IN (?, ?, ?)
 users := []User{}
-has, err := db.Where("id", "IN", []int{1,2,3}).Find(&users)
-
-// SELECT * FROM user WHERE id < ?
-users := map[string]interface{}{}
-has, err := db.Where("id", "<", id).Find(&users)  
+has, err := db.Where("id", []int{1,2,3}, "IN").Find(&users)
 
 // SELECT * FROM user WHERE id = ? OR id = ?
 users := []User{}
-has, err := db.Where("id", "=", 1).OrWhere("id", "=", 2).Find(&users)  
+has, err := db.Where("id", 1).OrWhere("id", 2).Find(&users)  
 
 // SELECT * FROM user WHERE (id = ? OR id = ?) AND name LIKE ?
 users := []User{}
 has, err := db.WhereBracket(func (s *lemon.Session) {
-	s.Where("id", "=", 1).OrWhere("id", "=", 2)
-}).Where("name", "like", "%test%").Find(&users)
+	s.Where("id", 1).OrWhere("id", 2)
+}).Where("name", "%test%", "like").Find(&users)
 ```
 
 * 插入
@@ -71,21 +67,21 @@ affected, err := db.Values(&user1).Values(&user2).Insert()
 
 ```Go
 // UPDATE user SET name = ? Where id = ?
-affected, err := db.Where("id", "=", 1).Set(&user, "name").Update()
+affected, err := db.Where("id", 1).Set(&user, "name").Update()
 
 // UPDATE user SET name = ? Where id = ?
-affected, err := db.Table(&user).Where("id", "=", 1).Set("name", "xxx").Update()
+affected, err := db.Table(&user).Where("id", 1).Set("name", "xxx").Update()
 
 // UPDATE user SET name = ? Where id = ?
-affected, err := db.Table(&user).Where("id", "=", 1).Set(map[string]interface{}{"name": "xxx"}).Update()
+affected, err := db.Table(&user).Where("id", 1).Set(map[string]interface{}{"name": "xxx"}).Update()
 
 // UPDATE user SET xx = xx + 1 Where id = ?
-affected, err := db.Table(&user).Where("id", "=", 1).SetRaw("xx", "xx + 1").Update()
+affected, err := db.Table(&user).Where("id", 1).SetRaw("xx", "xx + 1").Update()
 ```
 
 * 删除
 
 ```Go
 // DELETE FROM user Where id = ?
-affected, err := db.Table(&user).Where("id", "=", 1).Delete()
+affected, err := db.Table(&user).Where("id", 1).Delete()
 ```

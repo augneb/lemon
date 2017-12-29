@@ -37,21 +37,36 @@ func (s *Session) Table(table interface{}) *Session {
 	return s
 }
 
-func (s *Session) Where(column string, operator string, value interface{}) *Session {
+func (s *Session) Where(column string, value interface{}, operators ...string) *Session {
+	operator := "="
+	if len(operators) > 0 {
+		operator = operators[0]
+	}
+
 	s.criteria(&s.where, column, operator, value, logicalAnd)
 
 	return s
 }
 
-func (s *Session) OrWhere(column string, operator string, value interface{}) *Session {
+func (s *Session) OrWhere(column string, value interface{}, operators ...string) *Session {
+	operator := "="
+	if len(operators) > 0 {
+		operator = operators[0]
+	}
+
 	s.criteria(&s.where, column, operator, value, logicalOr)
 
 	return s
 }
 
-func (s *Session) OrderBy(column string, order string) *Session {
+func (s *Session) OrderBy(column string, orders ...string) *Session {
 	if s.orderBy == nil {
 		s.orderBy = []string{}
+	}
+
+	order := "ASC"
+	if len(orders) > 0 {
+		order = orders[0]
 	}
 
 	s.orderBy = append(s.orderBy, column+" "+order)
@@ -69,37 +84,47 @@ func (s *Session) GroupBy(group string) *Session {
 	return s
 }
 
-func (s *Session) Limit(limit int64) *Session {
+func (s *Session) Limit(limit int) *Session {
 	s.limit = limit
 
 	return s
 }
 
-func (s *Session) Offset(offset int64) *Session {
+func (s *Session) Offset(offset int) *Session {
 	s.offset = offset
 
 	return s
 }
 
-func (s *Session) Having(column string, operator string, value interface{}) *Session {
+func (s *Session) Having(column string, value interface{}, operators ...string) *Session {
+	operator := "="
+	if len(operators) > 0 {
+		operator = operators[0]
+	}
+
 	s.criteria(&s.having, column, operator, value, logicalAnd)
 
 	return s
 }
 
-func (s *Session) OrHaving(column string, operator string, value interface{}) *Session {
+func (s *Session) OrHaving(column string, value interface{}, operators ...string) *Session {
+	operator := "="
+	if len(operators) > 0 {
+		operator = operators[0]
+	}
+
 	s.criteria(&s.having, column, operator, value, logicalOr)
 
 	return s
 }
 
-func (s *Session) WhereBracket(call func(*Session), connector string) *Session {
+func (s *Session) WhereBracket(call func(*Session), connector ...string) *Session {
 	s.bracket(&s.where, call, connector)
 
 	return s
 }
 
-func (s *Session) HavingBracket(call func(*Session), connector string) *Session {
+func (s *Session) HavingBracket(call func(*Session), connector ...string) *Session {
 	s.bracket(&s.having, call, connector)
 
 	return s
@@ -257,9 +282,14 @@ func (s *Session) criteria(store *[]conditionStore, column string, operator stri
 	})
 }
 
-func (s *Session) bracket(store *[]conditionStore, call func(*Session), connector string) {
+func (s *Session) bracket(store *[]conditionStore, call func(*Session), connectors []string) {
 	if *store == nil {
 		*store = []conditionStore{}
+	}
+
+	connector := logicalAnd
+	if len(connectors) > 0 {
+		connector = connectors[0]
 	}
 
 	*store = append(*store, conditionStore{

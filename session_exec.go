@@ -56,7 +56,7 @@ func (s *Session) Insert() (int64, error) {
 	if s.orm.cacheEmpty {
 		t := s.table.Name
 		s.reset()
-		s.Table(t).Where(s.table.PrimaryKey, "=", n)
+		s.Table(t).Where(s.table.PrimaryKey, n)
 
 		if keys, _ := s.makeCleanKey(); keys != nil {
 			s.cleanCache(keys)

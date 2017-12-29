@@ -44,8 +44,8 @@ type Session struct {
 	where   []conditionStore
 	having  []conditionStore
 	table   *structCache
-	limit   int64
-	offset  int64
+	limit   int
+	offset  int
 
 	set    map[string]interface{} // for update
 	fields []string               // for insert
