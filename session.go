@@ -84,12 +84,10 @@ func (s *Session) after(status bool) {
 		s.orm.eventLongQuery(s)
 	}
 
-	if !s.orm.debug {
-		return
+	if s.orm.debug {
+		str := "Orm %s %v [%fs] \033[49;" + util.If(status, "32;1m√", "31;1mx").(string) + "\033[0m"
+		s.orm.log.Debug(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
 	}
-
-	str := "Orm %s %v [%fs] \033[49;" + util.If(status, "32;1m√", "31;1mx").(string) + "\033[0m"
-	util.LogPrintln(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
 }
 
 // 重设清理

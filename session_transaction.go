@@ -46,4 +46,3 @@ func (s *Session) transaction(t string) error {
 
 	return err
 }
-

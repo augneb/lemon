@@ -66,10 +66,10 @@ func (o *Orm) GetTableInfo(table interface{}, isType ...bool) *structCache {
 // 缓存表结构信息
 func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 	newVal := new(structCache)
-	newVal.Name          = tName
-	newVal.Fields        = make([]string, t.NumField())
+	newVal.Name = tName
+	newVal.Fields = make([]string, t.NumField())
 	newVal.AutoIncrement = map[int]string{}
-	newVal.UniqueKeys    = map[string][]string{}
+	newVal.UniqueKeys = map[string][]string{}
 
 	for i := 0; i < t.NumField(); i++ {
 		// 取 Tag

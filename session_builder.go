@@ -128,7 +128,7 @@ func (s *Session) buildValuesString() string {
 
 	valStr := "(" + strings.Join(val, ",") + ")"
 
-	l = len(s.args)/l
+	l = len(s.args) / l
 
 	val = make([]string, l)
 	for i := 0; i < l; i++ {

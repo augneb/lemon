@@ -38,7 +38,6 @@ func (s *Session) updateDelete(sqlStr string, values []interface{}) (int64, erro
 	return n, nil
 }
 
-
 func (s *Session) Insert() (int64, error) {
 	defer s.reset()
 

@@ -20,6 +20,9 @@ type Orm struct {
 	// 开启 debug 会打印查询日志
 	debug bool
 
+	// log handler
+	log Logger
+
 	// 缓存
 	enableCache  bool
 	cacheTime    int
@@ -59,6 +62,7 @@ func Open(driverName, dataSource string) (*Orm, error) {
 	o := &Orm{
 		db:         db,
 		driverName: driverName,
+		log:        newLogger(),
 	}
 
 	o.uri = o.Parse(driverName, dataSource)
@@ -150,6 +154,12 @@ func (o *Orm) SetEnableCache(cache bool, prefix ...string) *Orm {
 // 设置缓存时间
 func (o *Orm) SetCacheTime(second int) *Orm {
 	o.cacheTime = second
+
+	return o
+}
+
+func (o *Orm) SetLogHandler(log Logger) *Orm {
+	o.log = log
 
 	return o
 }

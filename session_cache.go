@@ -8,9 +8,8 @@ import (
 	"time"
 	"bytes"
 	"database/sql"
-
-	"github.com/vmihailenco/msgpack"
 	"github.com/augneb/util"
+	"github.com/vmihailenco/msgpack"
 )
 
 func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {

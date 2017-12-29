@@ -8,7 +8,7 @@ import (
 
 // code is copy from xorm
 
-type Uri struct{
+type Uri struct {
 	Type    string
 	Host    string
 	Port    int
@@ -18,10 +18,10 @@ type Uri struct{
 
 func (o *Orm) Parse(driverName, dataSourceName string) *Uri {
 	dsnPattern := regexp.MustCompile(
-		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` +          // [user[:password]@]
+		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
 			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
-			`\/(?P<schema>.*?)`  +                            // /schema
-			`(?:\?(?P<params>[^\?]*))?$`)                     // [?param1=value1&paramN=valueN]
+			`\/(?P<schema>.*?)` + // /schema
+			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
 	matches := dsnPattern.FindStringSubmatch(dataSourceName)
 	names := dsnPattern.SubexpNames()
 
