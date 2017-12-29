@@ -109,7 +109,7 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 			}
 
 			if v[:2] == "un" {
-				if u := strings.Replace(v, "union:", "", -1); u == "" {
+				if u := strings.Replace(v, "unique:", "", -1); u == "" {
 					newVal.UniqueKeys[f] = append(newVal.UniqueKeys[f], f)
 				} else {
 					newVal.UniqueKeys[u] = append(newVal.UniqueKeys[u], f)

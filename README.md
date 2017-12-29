@@ -23,7 +23,7 @@ db, err := lemon.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/test?charset=utf
 ```Go
 type User struct {
     Id int64 `db:"pk ai"` // primary key auto_increment
-    Name string
+    Name string `db:"unique   "` //unique key
     NickName string `db:"nick_name"` // 指定字段名
 }
 ```
