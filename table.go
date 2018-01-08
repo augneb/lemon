@@ -3,7 +3,6 @@ package lemon
 import (
 	"reflect"
 	"strings"
-	"github.com/augneb/util"
 )
 
 type TableName interface {
@@ -16,6 +15,8 @@ type structCache struct {
 	Fields        []string
 	AutoIncrement map[int]string
 	UniqueKeys    map[string][]string
+	Created       string
+	Updated       string
 }
 
 // 获取表结构信息
@@ -53,7 +54,7 @@ func (o *Orm) GetTableInfo(table interface{}, isType ...bool) *structCache {
 	if fn, ok := v.Interface().(TableName); ok {
 		tableName = fn.TableName()
 	} else {
-		tableName = util.ToSnakeCase(structName, true)
+		tableName = toSnakeCase(structName, true)
 	}
 
 	if s, ok := o.structCache.Load(tableName); ok {
@@ -80,7 +81,7 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 
 		// 没有 Tag，则数据库字段名为表结构字段名
 		if tag == "" {
-			newVal.Fields[i] = util.ToSnakeCase(n, true)
+			newVal.Fields[i] = toSnakeCase(n, true)
 			continue
 		}
 
@@ -88,9 +89,9 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 		tags := strings.Fields(tag)
 
 		// 第一个 tag，如果不是字段名，则数据库字段名为结构体字段名
-		f := tags[0][:2]
-		if f == "ai" || f == "pk" || f == "un" {
-			f = util.ToSnakeCase(n, true)
+		f := tags[0][:1]
+		if f == "_" {
+			f = toSnakeCase(n, true)
 		} else {
 			f = strings.Trim(tags[0], "'")
 		}
@@ -98,18 +99,33 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 		newVal.Fields[i] = f
 
 		for _, v := range tags {
-			if v == "ai" {
+			if v == "_ai" {
 				newVal.AutoIncrement[i] = v
 				continue
 			}
 
-			if v == "pk" {
+			if v == "_pk" {
 				newVal.PrimaryKey = f
 				continue
 			}
 
-			if v[:2] == "un" {
-				if u := strings.Replace(v, "unique:", "", -1); u == "" {
+			s3 := v[:3]
+			s7 := v[:7]
+
+			if s3 == "_ct" || s7 == "_create" {
+				newVal.Created = f
+				continue
+			}
+
+			if s3 == "_ut" || s7 == "_update" {
+				newVal.Updated = f
+				continue
+			}
+
+			if s3 == "_uq" || s7 == "_unique" {
+				if u := strings.Replace(v, "_uq:", "", -1); u == "" {
+					newVal.UniqueKeys[f] = append(newVal.UniqueKeys[f], f)
+				} else if u := strings.Replace(v, "_unique:", "", -1); u == "" {
 					newVal.UniqueKeys[f] = append(newVal.UniqueKeys[f], f)
 				} else {
 					newVal.UniqueKeys[u] = append(newVal.UniqueKeys[u], f)

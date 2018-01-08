@@ -13,7 +13,7 @@ var (
 	errNeedPtrToSlice = errors.New("needs a pointer to a slice")
 )
 
-func (s *Session) Query(sqlStr string, values ...interface{}) (*sql.Rows, error) {
+func (s *Session) Query(sqlStr string, values []interface{}) (*sql.Rows, error) {
 	if sqlStr == "" {
 		return nil, errSqlEmpty
 	}
@@ -53,19 +53,19 @@ func (s *Session) Query(sqlStr string, values ...interface{}) (*sql.Rows, error)
 	return r, e
 }
 
-func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
+func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) (find bool, err error) {
 	defer s.reset()
 
 	v := reflect.ValueOf(obj)
 
 	// 检测是否指针
 	if v.Kind() != reflect.Ptr {
-		return errors.New("needs a pointer, given: " + v.Kind().String())
+		return find, errors.New("need a pointer, given: " + v.Kind().String())
 	}
 
 	// 检测是否结构体
 	if k := v.Elem().Kind(); k != reflect.Struct {
-		return errors.New("element needs a struct, given: " + k.String())
+		return find, errors.New("element need a struct, given: " + k.String())
 	}
 
 	s.Limit(1)
@@ -79,34 +79,30 @@ func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 		s.parseSelectFields(s.table)
 	}
 
-	var err error
 	var cacheKey string
 
 	// 是否开启缓存
 	if s.enableCache {
-		// 命中缓存条件，从缓存中获取数据
 		cacheKey = s.getCleanKey()
-		if cacheKey != "" {
-			err = s.getFromCache(cacheKey, &v)
-		}
 	}
 
-	if cacheKey == "" {
+	if cacheKey != "" {
+		find, err = s.getFromCache(cacheKey, &v)
+	} else {
 		pointers := make([]interface{}, len(s.colIdx))
 		for i, idx := range s.colIdx {
 			pointers[i] = v.Elem().Field(idx).Addr().Interface()
 		}
 
 		var rows *sql.Rows
-
-		sqlStr, values := s.GetSelectSql()
-		rows, err = s.Query(sqlStr, values...)
+		rows, err = s.Query(s.GetSelectSql())
 		if err != nil {
-			return err
+			return
 		}
 
 		if rows.Next() {
-			err = rows.Scan(pointers...)
+			err  = rows.Scan(pointers...)
+			find = _if(err != nil, true, false).(bool)
 		}
 
 		rows.Close()
@@ -118,27 +114,27 @@ func (s *Session) Get(obj interface{}, to ...*map[string]interface{}) error {
 		}
 	}
 
-	return err
+	return
 }
 
-func (s *Session) Find(obj interface{}) error {
+func (s *Session) Find(obj interface{}) (find bool, err error) {
 	defer s.reset()
 
 	v := reflect.ValueOf(obj)
 	if v.Kind() != reflect.Ptr {
-		return errNeedPointer
+		return find, errNeedPointer
 	}
 
 	sliceValue := reflect.Indirect(v)
 	if sliceValue.Kind() != reflect.Slice {
-		return errNeedPtrToSlice
+		return find, errNeedPtrToSlice
 	}
 
 	elemType := sliceValue.Type().Elem()
 
-	var isPointer bool
+	var isPtr bool
 	if elemType.Kind() == reflect.Ptr {
-		isPointer = true
+		isPtr = true
 		elemType = elemType.Elem()
 	}
 
@@ -152,15 +148,17 @@ func (s *Session) Find(obj interface{}) error {
 		s.parseSelectFields(ti)
 	}
 
-	sqlStr, values := s.GetSelectSql()
-	rows, err := s.Query(sqlStr, values...)
+	var rows *sql.Rows
+	rows, err = s.Query(s.GetSelectSql())
 	if err != nil {
-		return err
+		return
 	}
 
 	defer rows.Close()
 
 	for rows.Next() {
+		find = true
+
 		newValue := reflect.New(elemType)
 		newIndirect := reflect.Indirect(newValue)
 
@@ -169,19 +167,19 @@ func (s *Session) Find(obj interface{}) error {
 			pointers = append(pointers, newIndirect.Field(field).Addr().Interface())
 		}
 
-		err := rows.Scan(pointers...)
+		err = rows.Scan(pointers...)
 		if err != nil {
-			return err
+			return false, err
 		}
 
-		if isPointer {
+		if isPtr {
 			sliceValue.Set(reflect.Append(sliceValue, newValue.Elem().Addr()))
 		} else {
 			sliceValue.Set(reflect.Append(sliceValue, newValue.Elem()))
 		}
 	}
 
-	return nil
+	return
 }
 
 func (s *Session) parseSelectFields(ti *structCache) {

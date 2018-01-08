@@ -8,11 +8,12 @@ import (
 	"time"
 	"bytes"
 	"database/sql"
-	"github.com/augneb/util"
 	"github.com/vmihailenco/msgpack"
 )
 
-func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
+var emptyCacheBytes = []byte(emptyCacheString)
+
+func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (find bool, err error) {
 	s.queryStart = time.Now()
 
 	// get from cache
@@ -20,17 +21,16 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 
 	if res != nil && len(res) > 0 {
 		// empty cache
-		if bytes.Equal(res, []byte(emptyCacheString)) {
+		if bytes.Equal(res, emptyCacheBytes) {
 			return
 		}
 
 		var d []interface{}
-		err = msgpack.Unmarshal(res, &d)
-
-		if err != nil {
+		if err = msgpack.Unmarshal(res, &d); err != nil {
 			return
 		}
 
+		find = true
 		for _, idx := range s.colIdx {
 			convertAssign(v.Elem().Field(idx).Addr().Interface(), d[idx])
 		}
@@ -51,9 +51,7 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 	}
 
 	var rows *sql.Rows
-
-	sqlStr, values := sn.GetSelectSql()
-	rows, err = sn.Query(sqlStr, values...)
+	rows, err = sn.Query(sn.GetSelectSql())
 	if err != nil {
 		return
 	}
@@ -68,15 +66,15 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 		p[i] = &d[i]
 	}
 
-	var find bool
 	if rows.Next() {
+		err  = rows.Scan(p...)
 		find = true
-		err = rows.Scan(p...)
 	}
 
 	rows.Close()
 
 	if err != nil {
+		find = false
 		return
 	}
 
@@ -93,8 +91,7 @@ func (s *Session) getFromCache(cacheKey string, v *reflect.Value) (err error) {
 	}
 
 	var val []byte
-	val, err = msgpack.Marshal(d)
-	if err == nil {
+	if val, err = msgpack.Marshal(d); err == nil {
 		s.orm.cacheHandler.Set(cacheKey, val, s.orm.cacheTime)
 	}
 
@@ -208,9 +205,9 @@ func convertAssign(dest, src interface{}) error {
 		case *string:
 			*d = string(s)
 		case *interface{}:
-			*d = util.CloneBytes(s)
+			*d = bytesClone(s)
 		case *[]byte:
-			*d = util.CloneBytes(s)
+			*d = bytesClone(s)
 		default:
 			return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
 		}
@@ -313,9 +310,7 @@ func (s *Session) makeCleanKey() (keys []string, err error) {
 	}
 
 	var rows *sql.Rows
-
-	sqlStr, values := sn.GetSelectSql()
-	rows, err = sn.Query(sqlStr, values...)
+	rows, err = sn.Query(sn.GetSelectSql())
 	if err != nil {
 		return
 	}

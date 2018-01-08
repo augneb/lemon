@@ -12,6 +12,18 @@ func (o *Orm) EnableCache(cache bool) *Session {
 	return o.NewSession().EnableCache(cache)
 }
 
+func (o *Orm) Get(obj interface{}, to ...*map[string]interface{}) (find bool, err error) {
+	return o.NewSession().Get(obj, to...)
+}
+
+func (o *Orm) Find(obj interface{}) (find bool, err error) {
+	return o.NewSession().Find(obj)
+}
+
+func (o *Orm) Id(id interface{}, obj interface{}, to ...*map[string]interface{}) (find bool, err error) {
+	return o.NewSession().Where("id", id).Get(obj, to...)
+}
+
 func (o *Orm) Columns(columns ...string) *Session {
 	return o.NewSession().Columns(columns...)
 }
