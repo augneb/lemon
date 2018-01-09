@@ -109,8 +109,17 @@ func (o *Orm) cacheTableInfo(t reflect.Type, tName string) *structCache {
 				continue
 			}
 
-			s3 := v[:3]
-			s7 := v[:7]
+			ln := len(v)
+
+			s3, s7 := "", ""
+
+			if ln > 2 {
+				s3 = v[:3]
+			}
+
+			if ln > 6 {
+				s7 = v[:7]
+			}
 
 			if s3 == "_ct" || s7 == "_create" {
 				newVal.Created = f

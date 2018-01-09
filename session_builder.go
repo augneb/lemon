@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"reflect"
+	"time"
 )
 
 func (s *Session) buildSelectString() string {
@@ -95,15 +96,23 @@ func (s *Session) buildOptionString() string {
 }
 
 func (s *Session) buildSetString() string {
-	arr := []string{}
+	if len(s.set) > 0 && s.table.Updated != "" {
+		if _, ok := s.set[s.table.Updated]; !ok {
+			// TODO 支持自定义类型
+			s.set[s.table.Updated] = time.Now().Unix()
+		}
+	}
+
+	arr   := []string{}
+	s.args = []interface{}{}
 	for k, v := range s.set {
 		if reflect.TypeOf(v).Name() == "rawStore" {
 			arr = append(arr, "`"+k+"`"+" = "+v.(rawStore).value)
-
 			continue
 		}
 
-		arr = append(arr, "`"+k+"`"+" = ?")
+		arr    = append(arr, "`"+k+"`"+" = ?")
+		s.args = append(s.args, v)
 	}
 
 	return "SET " + strings.Join(arr, ", ")
@@ -112,6 +121,19 @@ func (s *Session) buildSetString() string {
 func (s *Session) buildValuesString() string {
 	if s.fields == nil || len(s.fields) == 0 {
 		return ""
+	}
+
+	// TODO 支持自定义类型
+	now := time.Now().Unix()
+
+	if s.table.Created != "" && !sliceIn(s.table.Created, s.fields) {
+		s.fields = append(s.fields, s.table.Created)
+		s.args   = append(s.args, now)
+	}
+
+	if s.table.Updated != "" && !sliceIn(s.table.Updated, s.fields) {
+		s.fields = append(s.fields, s.table.Updated)
+		s.args   = append(s.args, now)
 	}
 
 	str := "(`"
@@ -257,15 +279,6 @@ func (s *Session) buildUpdate() {
 	})
 
 	s.sql = strings.Join(parts, " ")
-
-	s.args = []interface{}{}
-	for _, v := range s.set {
-		if reflect.TypeOf(v).Name() == "rawStore" {
-			continue
-		}
-
-		s.args = append(s.args, v)
-	}
 
 	s.getCriteriaValues(&s.where)
 }

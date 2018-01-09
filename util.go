@@ -3,6 +3,7 @@ package lemon
 import (
 	"strings"
 	"regexp"
+	"reflect"
 )
 
 var matchFirstCap = regexp.MustCompile("(.)([A-Z][a-z]+)")
@@ -25,6 +26,18 @@ func sliceFilter(items []string) []string {
 	}
 
 	return result
+}
+
+func sliceIn(elt, slice interface{}) bool {
+	v := reflect.Indirect(reflect.ValueOf(slice))
+
+	for i := 0; i < v.Len(); i++ {
+		if reflect.DeepEqual(v.Index(i).Interface(), elt) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func bytesClone(b []byte) []byte {

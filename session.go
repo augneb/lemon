@@ -84,7 +84,7 @@ func (s *Session) after(status bool) {
 	}
 
 	if s.orm.debug {
-		str := "Orm %s %v [%fs] \033[49;" + _if(status, "32;1m√", "31;1mx").(string) + "\033[0m"
+		str := "%s %v [%fs] \033[49;" + _if(status, "32;1m√", "31;1mx").(string) + "\033[0m"
 		s.orm.log.Debug(fmt.Sprintf(str, s.sql, s.args, s.queryTime))
 	}
 }

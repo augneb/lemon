@@ -9,8 +9,8 @@ import (
 
 var (
 	errSqlEmpty       = errors.New("sql is empty")
-	errNeedPointer    = errors.New("needs a pointer")
-	errNeedPtrToSlice = errors.New("needs a pointer to a slice")
+	errNeedPointer    = errors.New("need a pointer")
+	errNeedPtrToSlice = errors.New("need a pointer to a slice")
 )
 
 func (s *Session) Query(sqlStr string, values []interface{}) (*sql.Rows, error) {
