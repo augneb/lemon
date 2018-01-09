@@ -78,8 +78,8 @@ func (s *Session) EnableCache(cache bool) *Session {
 func (s *Session) after(status bool) {
 	s.queryTime = time.Since(s.queryStart).Seconds()
 
-	// TODO: open a goroutine?
-	if s.orm.longQueryTime > 0 && s.queryTime >= s.orm.longQueryTime && s.orm.longQueryEventCall == nil {
+	// TODO open a goroutine?
+	if s.orm.longQueryEventCall != nil && s.orm.longQueryTime > 0 && s.queryTime >= s.orm.longQueryTime {
 		s.orm.eventLongQuery(s)
 	}
 
